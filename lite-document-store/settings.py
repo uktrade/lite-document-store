@@ -64,11 +64,23 @@ WSGI_APPLICATION = 'lite-document-store.wsgi.application'
 
 VCAP_SERVICES = env.json('VCAP_SERVICES', {})
 
+STORAGE_CLASSES = {
+    'default': 'storages.backends.s3boto3.S3Boto3Storage',
+    'local-storage': 'django.core.files.storage.FileSystemStorage',
+}
+
+STORAGE_CLASS_NAME = env.str('STORAGE_CLASS_NAME', 'default')
+DEFAULT_FILE_STORAGE = STORAGE_CLASSES[STORAGE_CLASS_NAME]
+
+AWS_S3_HOST = env.str('AWS_S3_HOST', 's3.eu-west-2.amazonaws.com')
+AWS_DEFAULT_ACL = None
+
 if 'aws-s3-bucket' in VCAP_SERVICES:
-    AWS_ACCESS_KEY = VCAP_SERVICES['aws-s3-bucket'][0]['credentials']['aws_access_key_id']
-    AWS_SECRET_KEY = VCAP_SERVICES['aws-s3-bucket'][0]['credentials']['aws_secret_access_key']
-    AWS_REGION = VCAP_SERVICES['aws-s3-bucket'][0]['credentials']['aws_region']
-    S3_BUCKET_NAME = VCAP_SERVICES['aws-s3-bucket'][0]['credentials']['bucket_name']
+    credentials = VCAP_SERVICES['aws-s3-bucket'][0]['credentials']
+    AWS_ACCESS_KEY_ID = credentials['aws_access_key_id']
+    AWS_SECRET_ACCESS_KEY = credentials['aws_secret_access_key']
+    AWS_STORAGE_BUCKET_NAME = credentials['bucket_name']
+    AWS_S3_REGION_NAME = credentials['aws_region']
 
 
 # Database
