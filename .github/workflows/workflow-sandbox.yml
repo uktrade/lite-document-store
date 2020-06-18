@@ -10,9 +10,6 @@ on:
   pull_request:
     branches: [ actions-poc ]
 
-env:
-  APP_ENV: 'sandbox'
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -25,26 +22,23 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
-    # - name: Install cf-cli
-    #   run: |
-    #     sudo apt-get install -y wget gnupg2
-    #     sudo wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
-    #     echo "deb https://packages.cloudfoundry.org/debian stable main" | sudo tee /etc/apt/sources.list.d/cloudfoundry-cli.list
-    #     sudo apt-get update
-    #     sudo apt-get install -y cf-cli
-    #
+    - name: Set CF env VARs from CI Vault
+      run: python3 /home/github/vault.py
+      env:
+        VAULT_URL: ${{ secrets.VAULT_URL }}
+        VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        CF_USERNAME: ${{ secrets.CF_USERNAME }}
+        CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+        CF_DOMAIN: ${{ secrets.CF_DOMAIN }}
+        PAAS_ENV: ${{ secrets.PAAS_ENV }}
+        PAAS_NAMESPACE: ${{ secrets.PAAS_NAMESPACE }}
+        PAAS_APP_NAME:  ${{ secrets.PAAS_APP_NAME }}
 
     - name: Login to CF endpoint
-      run: cf login -a ${{ secrets.CF_API }} -u ${{ secrets.CF_USER }} -p ${{ secrets.CF_PASSWORD }} -o ${{ secrets.CF_ORG }} -s ${{ env.APP_ENV }}
+      run: cf login -a ${{ secrets.CF_DOMAIN }} -u ${{ secrets.CF_USERNAME }} -p ${{ secrets.CF_PASSWORD }} -o ${{ secrets.CF_ORG }} -s ${{ secrets.PAAS_NAMESPACE }}-${{ secrets.PAAS_ENV }}
 
     - name: Create APP
-      run: cf v3-create-app ${{ secrets.APP_NAME }}-${{ env.APP_ENV }}
+      run: cf v3-create-app ${{ secrets.PAAS_APP_NAME }}-${{ secrets.PAAS_ENV }}
 
-    - name: Set CF Env
-      run: |
-        cf set-env '${{ secrets.APP_NAME }}-${{ env.APP_ENV }}' ALLOWED_HOSTS '${{ secrets.ALLOWED_HOSTS }}'
-        cf set-env '${{ secrets.APP_NAME }}-${{ env.APP_ENV }}' SECRET_KEY '${{ secrets.DJANGO_SECRET }}'
-        cf set-env '${{ secrets.APP_NAME }}-${{ env.APP_ENV }}' DISABLE_COLLECTSTATIC 1
-
-    - name: Deploy app
-      run: cf push '${{ secrets.APP_NAME }}-${{ env.APP_ENV }}' -b python_buildpack
+    - name: Deploy APP
+      run: cf push '${{ secrets.PAAS_APP_NAME }}-${{ secrets.PAAS_ENV }}' -b python_buildpack
