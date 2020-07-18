@@ -23,20 +23,11 @@ jobs:
     # The type of runner that the job will run on
     runs-on: [self-hosted, Linux, X64]
 
-    # Steps represent a sequence of tasks that will be executed as part of the job.
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it.
     - uses: actions/checkout@v2
 
+    # Deploy app to UKGov PaaS
     - name: Set CF env VARs from CI Vault
       run: python3 /home/github/vault.py
-
-    #This can all be moved into the vauly/py scripts, no need to do this here.
-    - name: Login to CF endpoint
-      run: cf login -a $CF_DOMAIN -u $CF_USERNAME -p $CF_PASSWORD -o $CF_ORG -s '${{ env.PAAS_NAMESPACE }}-${{ env.PAAS_ENV }}'
-
-    - name: Create APP
-      run: cf v3-create-app '${{ env.PAAS_APP_NAME }}-${{ env.PAAS_ENV }}'
-
-    - name: Deploy APP
-      run: cf push '${{ env.PAAS_APP_NAME }}-${{ env.PAAS_ENV }}' -b python_buildpack
